@@ -1,0 +1,50 @@
+# Entorno virtual
+.venv/
+venv/
+env/
+ENV/
+
+# ByteTrack (se instala desde GitHub)
+ByteTrack/
+libs/ByteTrack/
+
+# Archivos de Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Archivos de video (no versionar videos, son muy grandes)
+*.mp4
+*.avi
+*.mov
+data/*.mp4
+data/*.avi
+data/*.mov
+
+# Modelos descargados
+*.pt
+*.pth
+*.onnx
+
+# Resultados de procesamiento
+output/
+*-result.mp4
+*-output.mp4
+
+# Configuración del sistema
+.DS_Store
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Archivos temporales
+*.tmp
+*.temp
+

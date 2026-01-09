@@ -1,0 +1,48 @@
+# YOLOv8 - Object Detection
+ultralytics<=8.3.40
+supervision==0.1.0
+
+# ByteTrack - Tracker estándar y más efectivo para tracking de vehículos
+# ByteTrack NO está disponible en PyPI, debe instalarse desde GitHub
+# 
+# 📚 Para entender CÓMO y POR QUÉ se instala así, lee: INSTALACION_BYTETRACK.md
+# 
+# OPCIÓN 1 (Recomendada): Script de instalación automática
+#   bash install_bytetrack.sh
+#
+# OPCIÓN 2: Instalación manual (ver INSTALACION_BYTETRACK.md para explicación detallada)
+#   git clone https://github.com/FoundationVision/ByteTrack.git
+#   cd ByteTrack
+#   sed -i 's/onnx==1.8.1/onnx>=1.12.0/g' requirements.txt
+#   sed -i 's/onnx==1.9.0/onnx>=1.12.0/g' requirements.txt
+#   sed -i 's/onnxruntime==1.8.0/onnxruntime>=1.17.0/g' requirements.txt
+#   pip install -r requirements.txt
+#   pip install -e .  # o uv pip install -e .
+#   pip install cython_bbox onemetric loguru lap thop
+
+# ByteTrack dependencies
+# Nota: onnx 1.9.0 requiere cmake para compilar. Usamos 1.12.0+ que tiene wheels precompilados
+# ByteTrack funciona bien con versiones más recientes de onnx
+onnx>=1.12.0
+cython_bbox
+onemetric
+loguru
+lap
+thop
+filterpy
+scipy
+numpy
+opencv-python
+opencv-contrib-python
+
+# PyTorch (required by ultralytics)
+# Install appropriate version for your CUDA setup
+# For CPU: pip install torch torchvision
+# For CUDA: pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
+torch
+torchvision
+tqdm
+matplotlib
+ipython
+jupyter
+
