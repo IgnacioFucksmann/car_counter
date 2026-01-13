@@ -1,149 +1,152 @@
-# Car Counter - Contador de Vehículos
+# Car Counter - Vehicle Counting System
 
-Sistema de detección, tracking y conteo de vehículos usando YOLOv8 y ByteTrack.
+Vehicle detection, tracking, and counting system using YOLOv8 and ByteTrack.
 
-## 🚀 Características
+## 🚀 Features
 
-- **Detección de vehículos** usando YOLOv8 (car, motorcycle, bus, truck)
-- **Tracking de objetos** con ByteTrack para seguir vehículos entre frames
-- **Conteo de vehículos** usando línea de conteo configurable
-- **Anotación de video** con bounding boxes, IDs de tracker y contadores
+- **Vehicle detection** using YOLOv8 (car, motorcycle, bus, truck)
+- **Object tracking** with ByteTrack to follow vehicles across frames
+- **Vehicle counting** using configurable counting line
+- **Speed estimation** with adaptive smoothing filter to reduce oscillations
+- **Video annotation** with bounding boxes, tracker IDs, speed, and counters
 
-## 📋 Requisitos
+## 📋 Requirements
 
 - Python 3.12+
-- CUDA (opcional, para aceleración GPU)
-- `uv` (gestor de paquetes Python) o `pip`
+- CUDA (optional, for GPU acceleration)
+- `uv` (Python package manager) or `pip`
 
-## 🔧 Instalación
+## 🔧 Installation
 
-### 1. Clonar el repositorio
+### 1. Clone the repository
 
 ```bash
 git clone https://github.com/IgnacioFucksmann/CarCounter.git
 cd CarCounter
 ```
 
-### 2. Crear entorno virtual
+### 2. Create virtual environment
 
 ```bash
-# Con uv (recomendado)
+# With uv (recommended)
 uv venv
 
-# O con venv estándar
+# Or with standard venv
 python -m venv .venv
 ```
 
-### 3. Activar entorno virtual
+### 3. Activate virtual environment
 
 ```bash
 source .venv/bin/activate  # Linux/Mac
-# o
+# or
 .venv\Scripts\activate  # Windows
 ```
 
-### 4. Instalar dependencias
+### 4. Install dependencies
 
 ```bash
-# Con uv
+# With uv
 uv pip install -r requirements.txt
 
-# O con pip
+# Or with pip
 pip install -r requirements.txt
 ```
 
-### 5. Instalar ByteTrack
+### 5. Install ByteTrack
 
-ByteTrack no está disponible en PyPI, debe instalarse desde GitHub:
+ByteTrack is not available on PyPI, it must be installed from GitHub:
 
 ```bash
 bash install_bytetrack.sh
 ```
 
-Este script:
-- Clona ByteTrack desde GitHub
-- Corrige versiones de dependencias
-- Instala ByteTrack en modo desarrollo
+This script:
+- Clones ByteTrack from GitHub
+- Fixes dependency versions
+- Installs ByteTrack in development mode
 
-**Nota:** Si prefieres instalarlo manualmente, consulta `install_bytetrack.sh` para ver los pasos.
+**Note:** If you prefer to install it manually, check `install_bytetrack.sh` for the steps.
 
-## 🎯 Uso
+## 🎯 Usage
 
-### Configuración básica
+### Basic configuration
 
-Edita `main.py` para configurar:
+Edit `main.py` to configure:
 
 ```python
-input_video = "data/vehicle-counting.mp4"  # Video de entrada
-output_video = "output/vehicle-counting-result.mp4"  # Video de salida
-model_name = "yolov8x.pt"  # Modelo YOLOv8 (yolov8n.pt, yolov8s.pt, yolov8m.pt, yolov8l.pt, yolov8x.pt)
-line_start = Point(50, 1500)  # Punto inicial de línea de conteo
-line_end = Point(3840 - 50, 1500)  # Punto final de línea de conteo
+input_video = "data/vehicle-counting.mp4"  # Input video
+output_video = "output/vehicle-counting-result.mp4"  # Output video
+model_name = "yolov8x.pt"  # YOLOv8 model (yolov8n.pt, yolov8s.pt, yolov8m.pt, yolov8l.pt, yolov8x.pt)
+line_start = Point(50, 1500)  # Counting line start point
+line_end = Point(3840 - 50, 1500)  # Counting line end point
 ```
 
-### Ejecutar
+### Run
 
 ```bash
 python main.py
 ```
 
-El script:
-1. Carga el modelo YOLOv8 (se descarga automáticamente la primera vez)
-2. Procesa el video frame por frame
-3. Detecta y rastrea vehículos
-4. Cuenta vehículos que cruzan la línea
-5. Guarda el video procesado con anotaciones
-6. Muestra estadísticas finales
+The script:
+1. Loads the YOLOv8 model (automatically downloaded the first time)
+2. Processes the video frame by frame
+3. Detects and tracks vehicles
+4. Counts vehicles crossing the line
+5. Estimates vehicle speed with adaptive smoothing
+6. Saves the processed video with annotations
+7. Shows final statistics
 
-### Salida
+### Output
 
-El video procesado se guarda en `output/vehicle-counting-result.mp4` con:
-- Bounding boxes alrededor de cada vehículo
-- Labels con ID de tracker, clase y confianza
-- Línea de conteo con contador de vehículos
+The processed video is saved in `output/vehicle-counting-result.mp4` with:
+- Bounding boxes around each vehicle
+- Labels with tracker ID, class, and speed (km/h)
+- Counting line with vehicle counter
 
-Al finalizar, se muestran las estadísticas:
+At the end, statistics are shown:
 ```
 Vehicles counted (in):  45
 Vehicles counted (out): 42
 Total:                  87
 ```
 
-## 📁 Estructura del Proyecto
+## 📁 Project Structure
 
 ```
 car_counter/
-├── data/                    # Videos de entrada
+├── data/                    # Input videos
 │   └── vehicle-counting.mp4
-├── output/                  # Videos procesados (ignorado por Git)
-├── utils/                   # Utilidades
-│   ├── tracking_utils.py    # Funciones de tracking
-│   └── TRACKING_UTILS_EXPLICACION.md
-├── libs/                    # Dependencias externas
-│   └── ByteTrack/           # ByteTrack (ignorado por Git)
-├── model.py                 # Clase VehicleDetector
-├── processor.py             # Clase VideoProcessor
-├── main.py                  # Script principal
-├── install_bytetrack.sh     # Script de instalación de ByteTrack
-├── requirements.txt         # Dependencias Python
-└── README.md                # Este archivo
+├── output/                  # Processed videos (ignored by Git)
+├── utils/                   # Utilities
+│   ├── tracking_utils.py    # Tracking functions
+│   ├── view_transformer.py  # Perspective transformation for speed estimation
+│   └── speed_smoother.py    # Adaptive speed smoothing filter
+├── libs/                    # External dependencies
+│   └── ByteTrack/           # ByteTrack (ignored by Git)
+├── model.py                 # VehicleDetector class
+├── processor.py             # VideoProcessor class
+├── main.py                  # Main script
+├── install_bytetrack.sh     # ByteTrack installation script
+├── requirements.txt         # Python dependencies
+└── README.md                # This file
 ```
 
-## 🔍 Modelos YOLOv8 Disponibles
+## 🔍 Available YOLOv8 Models
 
-- `yolov8n.pt` - Nano (más rápido, menos preciso)
+- `yolov8n.pt` - Nano (fastest, less accurate)
 - `yolov8s.pt` - Small
 - `yolov8m.pt` - Medium
 - `yolov8l.pt` - Large
-- `yolov8x.pt` - XLarge (más preciso, más lento) - **Por defecto**
+- `yolov8x.pt` - XLarge (most accurate, slowest) - **Default**
 
-Los modelos se descargan automáticamente la primera vez que se usan.
+Models are automatically downloaded the first time they are used.
 
-## ⚙️ Configuración Avanzada
+## ⚙️ Advanced Configuration
 
-### Cambiar clases detectadas
+### Change detected classes
 
-En `model.py`, modifica `class_ids`:
+In `model.py`, modify `class_ids`:
 
 ```python
 detector = VehicleDetector(
@@ -152,70 +155,88 @@ detector = VehicleDetector(
 )
 ```
 
-### Ajustar parámetros de ByteTrack
+### Adjust ByteTrack parameters
 
-En `processor.py`, modifica `BYTETrackerArgs`:
+In `processor.py`, modify `BYTETrackerArgs`:
 
 ```python
 @dataclass(frozen=True)
 class BYTETrackerArgs:
-    track_thresh: float = 0.25      # Umbral de confianza
-    track_buffer: int = 30           # Frames de buffer
-    match_thresh: float = 0.8       # Umbral de matching
+    track_thresh: float = 0.25      # Confidence threshold
+    track_buffer: int = 30           # Buffer frames
+    match_thresh: float = 0.8       # Matching threshold
     aspect_ratio_thresh: float = 3.0
     min_box_area: float = 1.0
 ```
 
-## 🐛 Solución de Problemas
+### Speed estimation configuration
+
+In `processor.py`, you can configure the speed estimation:
+
+```python
+processor = VideoProcessor(
+    detector=detector,
+    line_start=line_start,
+    line_end=line_end,
+    source_roi=None,  # Source polygon for perspective transformation
+    target_roi=None,  # Target polygon for perspective transformation
+    enable_speed_estimation=True,  # Enable/disable speed estimation
+)
+```
+
+The `AdaptiveSpeedSmoother` uses exponential adaptive filtering:
+- **Small changes** (< 3 km/h): High smoothing (alpha ~0.1) to reduce oscillations
+- **Large changes** (> 3 km/h): Fast response (alpha up to 0.7) for real speed changes
+- Parameters are configurable: `min_alpha`, `max_alpha`, `threshold`, `sensitivity`
+
+## 🐛 Troubleshooting
 
 ### Error: "No module named 'yolox'"
 
-ByteTrack no está instalado. Ejecuta:
+ByteTrack is not installed. Run:
 ```bash
 bash install_bytetrack.sh
 ```
 
 ### Error: "No module named 'torch'"
 
-Instala PyTorch:
+Install PyTorch:
 ```bash
-# Con CUDA 12.6
+# With CUDA 12.6
 uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cu126
 
-# O solo CPU
+# Or CPU only
 uv pip install torch torchvision
 ```
 
-### El video se procesa muy lento
+### Video processing is very slow
 
-- Usa un modelo más pequeño: `yolov8n.pt` o `yolov8s.pt`
-- Asegúrate de tener GPU con CUDA instalado
-- Reduce la resolución del video de entrada
+- Use a smaller model: `yolov8n.pt` or `yolov8s.pt`
+- Make sure you have GPU with CUDA installed
+- Reduce the input video resolution
 
-## 📚 Documentación Adicional
-- `install_bytetrack.sh` - Script comentado con explicación de cada paso
+## 📚 Additional Documentation
+- `install_bytetrack.sh` - Commented script with explanation of each step
 
-## 🤝 Contribuciones
+## 🤝 Contributing
 
-Las contribuciones son bienvenidas. Por favor:
-1. Fork el proyecto
-2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
-3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
-4. Push a la rama (`git push origin feature/AmazingFeature`)
-5. Abre un Pull Request
+Contributions are welcome. Please:
+1. Fork the project
+2. Create a branch for your feature (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-## 📝 Licencia
+## 📝 License
 
-Este proyecto está bajo la Licencia MIT. Ver `LICENSE` para más detalles.
+This project is under the MIT License. See `LICENSE` for more details.
 
-## 🙏 Agradecimientos
+## 🙏 Acknowledgments
 
 - [Ultralytics](https://github.com/ultralytics/ultralytics) - YOLOv8
 - [FoundationVision](https://github.com/FoundationVision/ByteTrack) - ByteTrack
-- [Roboflow Supervision](https://github.com/roboflow/supervision) - Utilidades de video
+- [Roboflow Supervision](https://github.com/roboflow/supervision) - Video utilities
 
-## 📧 Contacto
+## 📧 Contact
 
-Para preguntas o sugerencias, abre un issue en el repositorio.
-
-
+For questions or suggestions, open an issue in the repository.
