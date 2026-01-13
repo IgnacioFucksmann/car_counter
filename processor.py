@@ -1,5 +1,6 @@
 from typing import Iterator, Tuple, Optional
 from dataclasses import dataclass
+from collections import defaultdict, deque
 import numpy as np
 from supervision.tools.detections import Detections, BoxAnnotator
 from supervision.tools.line_counter import LineCounter, LineCounterAnnotator
@@ -12,6 +13,8 @@ from tqdm import tqdm
 from yolox.tracker.byte_tracker import BYTETracker
 from model import VehicleDetector
 from utils.tracking_utils import detections2boxes, match_detections_with_tracks
+from utils.view_transformer import ViewTransformer
+from utils.speed_smoother import AdaptiveSpeedSmoother
 
 
 @dataclass(frozen=True)
@@ -39,6 +42,9 @@ class VideoProcessor:
         detector: VehicleDetector,
         line_start: Optional[Point] = None,
         line_end: Optional[Point] = None,
+        source_roi: Optional[np.ndarray] = None,
+        target_roi: Optional[np.ndarray] = None,
+        enable_speed_estimation: bool = True,
     ):
         """
         Initialize video processor.
@@ -47,6 +53,9 @@ class VideoProcessor:
             detector: VehicleDetector instance for vehicle detection
             line_start: Start point of counting line (default: Point(50, 1500))
             line_end: End point of counting line (default: Point(3840-50, 1500))
+            source_roi: Source polygon for perspective transformation (4 points)
+            target_roi: Target polygon for perspective transformation (4 points)
+            enable_speed_estimation: If True, enables speed estimation
         """
         self.detector = detector
         self.byte_tracker = BYTETracker(BYTETrackerArgs())
@@ -64,6 +73,38 @@ class VideoProcessor:
         self.line_annotator = LineCounterAnnotator(
             thickness=4, text_thickness=4, text_scale=2
         )
+
+        # Speed estimation setup
+        self.enable_speed_estimation = enable_speed_estimation
+        if enable_speed_estimation:
+            if source_roi is None:
+                # Default ROI from the notebook (same video)
+                source_roi = np.array(
+                    [[1252, 787], [2298, 803], [5039, 2159], [-550, 2159]]
+                )
+            if target_roi is None:
+                # Default target ROI (25x250)
+                target_width = 25
+                target_height = 250
+                target_roi = np.array(
+                    [
+                        [0, 0],
+                        [target_width - 1, 0],
+                        [target_width - 1, target_height - 1],
+                        [0, target_height - 1],
+                    ]
+                )
+
+            self.view_transformer = ViewTransformer(
+                source=source_roi, target=target_roi
+            )
+            # Initialize adaptive speed smoother
+            self.speed_smoother = AdaptiveSpeedSmoother(
+                min_alpha=0.1,  # Low alpha for small changes (more smoothing)
+                max_alpha=0.7,  # Higher alpha for large changes (faster response)
+                threshold=3.0,  # Threshold in km/h for considering change as "small"
+                sensitivity=2.0,  # Exponential sensitivity factor
+            )
 
     def process_video(
         self, video_path: str, annotate: bool = True
@@ -88,6 +129,12 @@ class VideoProcessor:
 
         # Get video info (for progress bar)
         video_info = VideoInfo.from_video_path(video_path)
+
+        # Initialize coordinates storage for speed estimation if enabled
+        if self.enable_speed_estimation:
+            coordinates = defaultdict(lambda: deque(maxlen=video_info.fps))
+            # Reset speed smoother for new video processing
+            self.speed_smoother.reset()
 
         # Process each frame
         for frame in tqdm(generator, total=video_info.total_frames):
@@ -117,13 +164,62 @@ class VideoProcessor:
             # Update line counter (counts vehicles crossing the line)
             self.line_counter.update(detections=detections)
 
+            # Speed estimation
+            if self.enable_speed_estimation and len(detections) > 0:
+                # Get bottom center points of detections
+                points = np.array(
+                    [
+                        [(xyxy[0] + xyxy[2]) / 2, xyxy[3]]  # [x_center, y_bottom]
+                        for xyxy in detections.xyxy
+                    ]
+                )
+
+                # Transform points to target ROI perspective
+                transformed_points = self.view_transformer.transform_points(
+                    points
+                ).astype(int)
+
+                # Store Y coordinates (vertical position in transformed space)
+                for tracker_id, [_, y] in zip(
+                    detections.tracker_id, transformed_points
+                ):
+                    coordinates[tracker_id].append(y)
+
             # Annotate if requested
             if annotate:
-                # Format labels with tracker ID
-                labels = [
-                    f"#{tracker_id} {self.detector.get_class_name(class_id)} {confidence:0.2f}"
-                    for _, confidence, class_id, tracker_id in detections
-                ]
+                # Format labels with tracker ID and speed
+                labels = []
+                for _, confidence, class_id, tracker_id in detections:
+                    if self.enable_speed_estimation and tracker_id in coordinates:
+                        if len(coordinates[tracker_id]) < video_info.fps / 2:
+                            # Not enough data yet, show only ID
+                            labels.append(
+                                f"#{tracker_id} {self.detector.get_class_name(class_id)}"
+                            )
+                        else:
+                            # Calculate raw speed
+                            coordinate_start = coordinates[tracker_id][
+                                -1
+                            ]  # Most recent
+                            coordinate_end = coordinates[tracker_id][0]  # Oldest
+                            distance = abs(coordinate_start - coordinate_end)
+                            time = len(coordinates[tracker_id]) / video_info.fps
+                            raw_speed = distance / time * 3.6  # Convert to km/h
+
+                            # Apply adaptive smoothing
+                            smoothed_speed = self.speed_smoother.smooth(
+                                tracker_id=tracker_id, current_speed=raw_speed
+                            )
+
+                            labels.append(
+                                f"#{tracker_id} {self.detector.get_class_name(class_id)} {int(smoothed_speed)} km/h"
+                            )
+                    else:
+                        # No speed estimation or no coordinates
+                        labels.append(
+                            f"#{tracker_id} {self.detector.get_class_name(class_id)} {confidence:0.2f}"
+                        )
+
                 frame = self.box_annotator.annotate(
                     frame=frame.copy(), detections=detections, labels=labels
                 )
